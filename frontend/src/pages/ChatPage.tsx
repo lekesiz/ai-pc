@@ -6,6 +6,7 @@ import { wsService } from '@/services/websocketService'
 import ChatSidebar from '@/components/chat/ChatSidebar'
 import ChatInput from '@/components/chat/ChatInput'
 import MessageList from '@/components/chat/MessageList'
+import VoiceRecordingModal from '@/components/voice/VoiceRecordingModal'
 import toast from 'react-hot-toast'
 
 export default function ChatPage() {
@@ -13,6 +14,7 @@ export default function ChatPage() {
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
+  const [showVoiceModal, setShowVoiceModal] = useState(false)
 
   const {
     sessions,
@@ -91,9 +93,11 @@ export default function ChatPage() {
   }
 
   const handleVoiceRecord = () => {
-    setIsRecording(!isRecording)
-    // TODO: Implement voice recording
-    toast.info('Voice recording coming soon!')
+    setShowVoiceModal(true)
+  }
+
+  const handleVoiceTranscription = (transcription: string) => {
+    handleSendMessage(transcription)
   }
 
   return (
@@ -160,6 +164,14 @@ export default function ChatPage() {
           isRecording={isRecording}
         />
       </div>
+
+      {/* Voice Recording Modal */}
+      <VoiceRecordingModal
+        isOpen={showVoiceModal}
+        onClose={() => setShowVoiceModal(false)}
+        onSendTranscription={handleVoiceTranscription}
+        sessionId={currentSession?.id}
+      />
     </div>
   )
 }
