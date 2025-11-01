@@ -1,396 +1,250 @@
-# 🚀 AI + Personal Computer System - Complete Documentation
+# 🤖 AI-PC System
 
-**Versiyon:** 1.0  
-**Durum:** Teknik Tasarım Aşaması  
-**Tarih:** Kasım 2025
+A powerful AI-powered personal computer assistant that combines voice commands, multi-AI model support, and real-time chat capabilities.
 
----
+![AI-PC Banner](https://img.shields.io/badge/AI--PC-System-blue?style=for-the-badge)
+![Python](https://img.shields.io/badge/Python-3.11+-green?style=flat-square)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue?style=flat-square)
+![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)
 
-## 📑 Dokümantasyon Haritası
+## 🌟 Features
 
-Bu proje kapsamlı bir teknik dokümantasyon paketi içeriyor. İşte adım adım başlamanız için rehber:
+### 🎯 Core Features
+- **Multi-AI Support**: Seamlessly switch between GPT-4, Claude 3, and Gemini Pro
+- **Voice Commands**: Record and transcribe voice messages using OpenAI Whisper
+- **Real-time Chat**: WebSocket-powered instant messaging
+- **Smart Routing**: Automatic AI model selection based on task type
+- **Cost Tracking**: Monitor API usage and costs in real-time
 
-### 1️⃣ **Başlangıç (Hemen Okuyun)**
+### 🛠️ Technical Features
+- **Modern Stack**: FastAPI + React + TypeScript
+- **Secure Auth**: JWT-based authentication system
+- **Real-time Updates**: WebSocket integration
+- **Dark Mode**: Built-in dark theme support
+- **Responsive Design**: Works on desktop and mobile
 
-```
-1. Bunu (README)
-2. AI_PC_System_Complete_Report.docx (MAIN REPORT)
-   → Executive Summary
-   → Sistem Mimarisi
-   → Teknik Stack
-   → Implementation Guide
-```
+## 📋 Prerequisites
 
-**Tahmini okuma süresi:** 2-3 saat
+- Python 3.11+
+- Node.js 18+
+- PostgreSQL 15+
+- Redis 7+
+- Docker & Docker Compose (optional)
 
-### 2️⃣ **Kurulum & Altyapı**
+## 🚀 Quick Start
 
-```
-1. DOCKER_SETUP_GUIDE.md
-   ├─ Docker Compose yapılandırması
-   ├─ Local infrastructure setup
-   └─ Makefile for easy commands
-
-2. ENVIRONMENT_VARIABLES_GUIDE.md
-   ├─ Development env setup
-   ├─ Staging configuration
-   ├─ Production secrets
-   └─ Validation scripts
-
-3. GITHUB_SETUP_GUIDE.md
-   ├─ Repository setup
-   ├─ Branch strategy
-   ├─ GitHub Actions CI/CD
-   └─ PR workflow
+### 1. Clone the Repository
+```bash
+git clone https://github.com/lekesiz/ai-pc.git
+cd ai-pc
 ```
 
-**Tahmini setup süresi:** 1-2 saat
-
-### 3️⃣ **Geliştirme**
-
-```
-1. API_INTEGRATION_EXAMPLES.md
-   ├─ cURL examples
-   ├─ Python client
-   ├─ JavaScript/TypeScript client
-   ├─ Error handling
-   └─ Testing with Postman
-
-2. Main Report's "Kod Template'leri" section
-   ├─ AI Router implementasyonu
-   ├─ API routes örneği
-   ├─ Audio processing
-   └─ Database schema
-```
-
----
-
-## 🎯 Quick Start (5 Dakika)
+### 2. Set Up Backend
 
 ```bash
-# 1. Repository'yi klonla
-git clone https://github.com/YOUR_USERNAME/ai-pc-system.git
-cd ai-pc-system
+# Navigate to backend
+cd backend
 
-# 2. Environment setup
-cp .env.example .env.local
-# .env.local'ı doldur (API keys, vb.)
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# 3. Docker başlat
-make docker-up
-# veya: docker-compose up -d
+# Install dependencies
+pip install -r requirements.txt
 
-# 4. Bağımlılıkları yükle
-pnpm install
-
-# 5. Database'i migrate et
-pnpm prisma migrate dev
-
-# 6. Dev server'ı başlat
-pnpm dev
-# http://localhost:3000 açılır
+# Set up environment variables
+cp .env.example .env
+# Edit .env and add your API keys:
+# - OPENAI_API_KEY
+# - ANTHROPIC_API_KEY
+# - GOOGLE_AI_API_KEY
 ```
 
----
+### 3. Set Up Database
 
-## 📚 Dokümantasyon Dosyaları
-
-### 🔴 Ana Rapor
-- **File:** `AI_PC_System_Complete_Report.docx`
-- **Size:** ~500 KB
-- **Contains:**
-  - ✅ Executive Summary
-  - ✅ Sistem Mimarisi (90+ sayfa)
-  - ✅ Teknik Stack detayları
-  - ✅ Component breakdown
-  - ✅ API Spesifikasyonları
-  - ✅ Database Schema (Prisma)
-  - ✅ Güvenlik Stratejisi
-  - ✅ Implementation Guide
-  - ✅ 9 adet kod template'i
-  - ✅ Deployment rehberi
-  - ✅ Monitoring & Maintenance
-  - ✅ Zaman & Kaynak Tahmini (16-22 hafta)
-  - ✅ Maliyet Analizi
-  - ✅ Quick Reference Checklist
-  - ✅ Success Factors
-
-**Okuma önerisi:** 
-- Executive Summary: 15 min
-- Sistem Mimarisi: 30 min
-- Detaylı bölümler: 2-3 saat
-
-### 🟠 Kurulum & Altyapı
-
-#### `DOCKER_SETUP_GUIDE.md`
-- Docker Compose konfigürasyonu
-- PostgreSQL, Redis, PgAdmin setup
-- Komutlar ve troubleshooting
-- Makefile ile kolaylaştırma
-
-**Ne zaman okuyun:** Local kurulumdan hemen önce
-
-#### `ENVIRONMENT_VARIABLES_GUIDE.md`
-- Development environment setup
-- Staging konfigürasyonu
-- Production secrets management
-- Validation scripts
-- Best practices
-
-**Ne zaman okuyun:** Herhangi bir environment'a kodu deploy etmeden önce
-
-#### `GITHUB_SETUP_GUIDE.md`
-- Repository kurulumu
-- Branch strategy (git flow)
-- Commit conventions
-- GitHub Actions CI/CD
-- PR workflow
-- Troubleshooting
-
-**Ne zaman okuyun:** İlk commit'ten önce
-
-### 🟡 Geliştirme & İntegrasyon
-
-#### `API_INTEGRATION_EXAMPLES.md`
-- OAuth 2.0 flow açıklaması
-- Message Processing API (cURL, Python, TypeScript)
-- Audio Transcription API
-- Gmail Integration
-- Google Drive Integration
-- Error handling patterns
-- Postman collection JSON
-
-**Ne zaman okuyun:** Frontend/backend integration sırasında
-
----
-
-## 🛠️ Teknoloji Stack Özeti
-
-### Frontend
-- **Web:** Next.js 14 + React 19 + TypeScript
-- **Desktop:** Tauri + React (Linux/macOS)
-- **Styling:** Tailwind CSS + shadcn/ui
-- **Real-time:** WebSocket (Socket.io)
-
-### Backend
-- **Runtime:** Node.js 20+ (Vercel Functions)
-- **Framework:** Next.js API Routes
-- **Database:** PostgreSQL 15 + Prisma ORM
-- **Cache:** Redis
-
-### AI & Integrations
-- **AI Providers:** OpenAI (GPT-4), Google Gemini, Anthropic Claude
-- **Audio:** Whisper API
-- **Google Services:** Gmail API, Drive API, OAuth 2.0
-
-### DevOps & Deployment
-- **Hosting:** Vercel (Frontend + Functions)
-- **CI/CD:** GitHub Actions
-- **Monitoring:** Vercel Analytics + Pino Logger
-- **Containerization:** Docker & Docker Compose (local)
-
----
-
-## 📋 Geliştirme Takvimi
-
-| Phase | Duration | Tasks |
-|-------|----------|-------|
-| **Setup & Architecture** | 2-3 weeks | Vercel, DB, Auth, CI/CD |
-| **Core Backend** | 3-4 weeks | AI Router, API, Whisper |
-| **Frontend Development** | 3-4 weeks | UI Components, WebSocket |
-| **Integrations** | 2-3 weeks | Gmail, Drive, History |
-| **Desktop App** | 2 weeks | Tauri, Audio Input |
-| **Testing & QA** | 2 weeks | Unit, Integration, E2E |
-| **Security & Deploy** | 1-2 weeks | Audit, Production Deploy |
-| **Total** | **16-22 weeks** | **~4-6 months** |
-
----
-
-## 💰 Tahmini Maliyetler
-
-### Saatlik/Aylık Operasyonel Maliyetler
-- **Vercel Functions & Hosting:** $200-500/month
-- **Database (PostgreSQL):** $150-300/month
-- **Redis Cache:** $50-100/month
-- **API Calls (OpenAI, Gemini, Claude):** $300-1000/month
-- **Google Cloud APIs:** $100-200/month
-- **Monitoring & Tools:** $50-100/month
-- **Infrastructure Total:** **$1,070-2,700/month**
-
-### Geliştirme Maliyeti
-- **4 FTE (4 months):** ~$100,000-150,000+
-- **Alternatif:** 1-2 senior developers paralel
-
----
-
-## ✅ Başlamak İçin Checklist
-
-### Pre-Development
-- [ ] Vercel account oluştur
-- [ ] GitHub repository setup
-- [ ] API keys al (OpenAI, Gemini, Claude)
-- [ ] Google OAuth credentials oluştur
-- [ ] Docker yükle
-
-### Setup Phase
-- [ ] Projeyi klonla
-- [ ] Docker containers başlat
-- [ ] `.env.local` dosyasını doldur
-- [ ] `pnpm install` çalıştır
-- [ ] `pnpm prisma migrate dev` çalıştır
-- [ ] `pnpm dev` ile server başlat
-
-### Development
-- [ ] Feature branch oluştur
-- [ ] Code yazma
-- [ ] Tests yazma
-- [ ] PR açma ve review
-- [ ] Main'e merge
-
-### Deployment
-- [ ] Environment variables Vercel'e ekle
-- [ ] Database migration
-- [ ] Health checks aktif
-- [ ] Monitoring setup
-- [ ] Backup configuration
-
----
-
-## 🔗 Harici Kaynaklar
-
-### Official Docs
-- [Vercel Documentation](https://vercel.com/docs)
-- [Next.js Documentation](https://nextjs.org/docs)
-- [Prisma Documentation](https://www.prisma.io/docs)
-- [Tauri Documentation](https://tauri.app/docs)
-
-### API Documentation
-- [OpenAI API](https://platform.openai.com/docs)
-- [Google Generative AI](https://ai.google.dev)
-- [Anthropic Claude](https://docs.anthropic.com)
-- [Gmail API](https://developers.google.com/gmail/api)
-
-### Communities
-- GitHub Discussions
-- Discord (Next.js, Vercel communities)
-- Stack Overflow (tagged: nextjs, prisma, typescript)
-
----
-
-## 🆘 Troubleshooting
-
-### Port çakışması
 ```bash
-lsof -i :5432  # Process'i bul
-kill -9 <PID>  # Kapat
+# Using Docker (recommended)
+docker-compose up -d
+
+# Run migrations
+alembic upgrade head
 ```
 
-### Database bağlantısı hatası
+### 4. Set Up Frontend
+
 ```bash
-docker-compose exec postgres psql -U ai_user -d ai_pc_dev
+# In a new terminal, navigate to frontend
+cd frontend
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
 ```
 
-### Redis bağlantısı
+### 5. Start the Backend Server
+
 ```bash
-docker-compose exec redis redis-cli -a redis_password ping
+# In the backend directory
+python -m app.main
 ```
 
-### Docker containers durumu
+Visit `http://localhost:3000` to access the application.
+
+## 🔧 Configuration
+
+### Environment Variables
+
+Create a `.env` file in the backend directory:
+
+```env
+# Database
+DATABASE_URL=postgresql+asyncpg://ai_user:ai_password@localhost/ai_pc_db
+
+# Redis
+REDIS_URL=redis://localhost:6379/0
+
+# Security
+SECRET_KEY=your-secret-key-here  # Generate with: openssl rand -hex 32
+
+# AI APIs
+OPENAI_API_KEY=your-openai-api-key
+ANTHROPIC_API_KEY=your-anthropic-api-key
+GOOGLE_AI_API_KEY=your-google-ai-api-key
+
+# Optional
+WHISPER_MODEL=whisper-1
+AUDIO_MAX_SIZE_MB=25
+```
+
+### Available AI Models
+
+| Provider | Model | Best For |
+|----------|-------|----------|
+| OpenAI | GPT-4 Turbo | General purpose, coding |
+| OpenAI | GPT-3.5 Turbo | Fast responses, lower cost |
+| Anthropic | Claude 3 Opus | Complex analysis, creative writing |
+| Google | Gemini Pro | Multilingual, fast responses |
+
+## 📱 Usage
+
+### Creating an Account
+1. Click "Create Account" on the login page
+2. Fill in your details
+3. Start chatting!
+
+### Voice Commands
+1. Click the microphone button in the chat interface
+2. Record your message (max 60 seconds)
+3. Choose to transcribe first or send directly
+4. The AI will respond to your transcribed message
+
+### Switching AI Models
+Use the dropdown in the chat header to switch between available AI models.
+
+## 🏗️ Architecture
+
+```
+ai-pc/
+├── backend/              # FastAPI backend
+│   ├── app/
+│   │   ├── api/         # API endpoints
+│   │   ├── core/        # Core utilities
+│   │   ├── models/      # Database models
+│   │   ├── schemas/     # Pydantic schemas
+│   │   └── services/    # Business logic
+│   └── alembic/         # Database migrations
+│
+├── frontend/            # React frontend
+│   ├── src/
+│   │   ├── components/  # React components
+│   │   ├── pages/       # Page components
+│   │   ├── services/    # API services
+│   │   ├── stores/      # State management
+│   │   └── hooks/       # Custom hooks
+│   └── public/          # Static assets
+│
+└── docker-compose.yml   # Docker configuration
+```
+
+## 🧪 Development
+
+### Running Tests
+
 ```bash
-docker-compose ps
-docker-compose logs -f postgres
+# Backend tests
+cd backend
+pytest
+
+# Frontend tests
+cd frontend
+npm test
 ```
 
-Daha fazla troubleshooting için ilgili rehberlere bakın.
+### Code Quality
+
+```bash
+# Backend
+black app
+flake8 app
+mypy app
+
+# Frontend
+npm run lint
+```
+
+### Making Changes
+
+1. Create a feature branch: `git checkout -b feature/your-feature`
+2. Make your changes
+3. Run tests and linting
+4. Commit: `git commit -m "feat: your feature description"`
+5. Push: `git push origin feature/your-feature`
+6. Create a pull request
+
+## 🚢 Deployment
+
+### Using Docker
+
+```bash
+# Build and run all services
+docker-compose up --build
+
+# Run in background
+docker-compose up -d
+```
+
+### Manual Deployment
+
+See [DEPLOYMENT.md](docs/DEPLOYMENT.md) for detailed deployment instructions.
+
+## 📊 API Documentation
+
+When running in development mode, API documentation is available at:
+- Swagger UI: `http://localhost:8000/api/docs`
+- ReDoc: `http://localhost:8000/api/redoc`
+
+## 🤝 Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+## 📄 License
+
+This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.
+
+## 🙏 Acknowledgments
+
+- OpenAI for GPT models and Whisper
+- Anthropic for Claude models
+- Google for Gemini models
+- The FastAPI and React communities
+
+## 📞 Support
+
+- **Issues**: [GitHub Issues](https://github.com/lekesiz/ai-pc/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/lekesiz/ai-pc/discussions)
 
 ---
 
-## 📞 İletişim & Destek
-
-- **GitHub Issues:** Bug reports ve feature requests
-- **Discussions:** Q&A ve discussions
-- **Email:** support@your-domain.com (production)
-
----
-
-## 📖 Dosya Okuma Sırası Önerisi
-
-### Senaryo 1: Baştan başlayan developer
-1. Bu README (5 min)
-2. Main Report Executive Summary (15 min)
-3. DOCKER_SETUP_GUIDE (30 min)
-4. ENVIRONMENT_VARIABLES_GUIDE (20 min)
-5. Start development
-
-### Senaryo 2: Projeyi devralacak olan developer
-1. Bu README (5 min)
-2. Tüm Main Report (3 hours)
-3. GITHUB_SETUP_GUIDE (20 min)
-4. API_INTEGRATION_EXAMPLES (1 hour)
-5. Review kod templates
-
-### Senaryo 3: DevOps/Infrastructure focus
-1. DOCKER_SETUP_GUIDE (1 hour)
-2. ENVIRONMENT_VARIABLES_GUIDE (30 min)
-3. GITHUB_SETUP_GUIDE (20 min)
-4. Main Report → Deployment Stratejisi (30 min)
-
-### Senaryo 4: Frontend developer
-1. API_INTEGRATION_EXAMPLES (1.5 hours)
-2. Main Report → Component Breakdown (1 hour)
-3. Main Report → Kod Templates (React örnekleri) (1 hour)
-
----
-
-## 🎓 Eğitim Kaynakları
-
-**Önerilen YouTube channels:**
-- Next.js by The Primeagen
-- TypeScript for JavaScript Developers (Matt Pocock)
-- System Design Primer (Alex Xu)
-- Web Security Academy (PortSwigger)
-
-**Ebook önerileri:**
-- "The Pragmatic Programmer"
-- "Clean Code" by Robert C. Martin
-- "System Design Interview" by Alex Xu
-
----
-
-## 📝 Version History
-
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0 | Nov 2025 | Initial documentation release |
-
----
-
-## ✨ Önemli Notlar
-
-1. **Security First:** Secrets'ı asla Git'e commit etme
-2. **Test Early:** Her feature'ı test yaz
-3. **Document Always:** Kod yazarken documentation güncelle
-4. **Monitor Closely:** Production'da logs ve metrics'i izle
-5. **Plan Scaling:** Başından scalable design düşün
-
----
-
-## 📄 Lisans
-
-MIT License - Bu proje açık kaynak olarak sunulmaktadır.
-
----
-
-**Last Updated:** November 1, 2025  
-**Maintained by:** Development Team  
-**Status:** Active Development ✅
-
----
-
-**Başlamaya hazır mısın? 🚀**
-
-1. DOCKER_SETUP_GUIDE'ı oku
-2. `make docker-up` çalıştır
-3. Kod yazma başla!
-
-İyi şanslar! 🎉
+Built with ❤️ by [lekesiz](https://github.com/lekesiz)
