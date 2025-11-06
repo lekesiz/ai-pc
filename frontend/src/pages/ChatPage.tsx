@@ -272,10 +272,10 @@ export default function ChatPage() {
           {/* Model selector */}
           <select
             className="rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm"
-            defaultValue={currentSession?.ai_model || 'gpt-4-turbo-preview'}
+            defaultValue={currentSession?.ai_model || 'gpt-3.5-turbo'}
           >
+            <option value="gpt-3.5-turbo">GPT-3.5 Turbo (Recommended)</option>
             <option value="gpt-4-turbo-preview">GPT-4 Turbo</option>
-            <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
             <option value="claude-3-opus-20240229">Claude 3 Opus</option>
             <option value="gemini-pro">Gemini Pro</option>
           </select>

@@ -39,7 +39,8 @@ class Settings(BaseSettings):
     GOOGLE_AI_API_KEY: Optional[str] = None
     
     # AI Model Configuration
-    DEFAULT_AI_MODEL: str = "gpt-4-turbo-preview"
+    # Default to GPT-3.5 Turbo for cost efficiency (~90% cheaper than GPT-4)
+    DEFAULT_AI_MODEL: str = "gpt-3.5-turbo"
     AI_TEMPERATURE: float = 0.7
     AI_MAX_TOKENS: int = 2000
     

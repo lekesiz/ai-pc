@@ -25,7 +25,7 @@ class User(Base):
     last_login = Column(DateTime(timezone=True), nullable=True)
     
     # Preferences
-    preferred_ai_model = Column(String, default="gpt-4-turbo-preview")
+    preferred_ai_model = Column(String, default="gpt-3.5-turbo")
     voice_enabled = Column(Boolean, default=True)
     language = Column(String, default="en")
     
