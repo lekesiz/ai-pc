@@ -1,13 +1,12 @@
 import { Fragment, useState } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
-import { 
-  XMarkIcon, 
-  PlusIcon, 
+import {
+  XMarkIcon,
+  PlusIcon,
   ChatBubbleLeftRightIcon,
   TrashIcon,
   MagnifyingGlassIcon
 } from '@heroicons/react/24/outline'
-import { formatDistanceToNow } from 'date-fns'
 import clsx from 'clsx'
 import type { Session } from '@/types/chat'
 
@@ -70,8 +69,9 @@ export default function ChatSidebar({
   const groupedSessions = groupSessionsByDate(filteredSessions)
 
   return (
-    <Transition.Root show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-50 lg:hidden" onClose={onClose}>
+    <>
+      <Transition.Root show={isOpen} as={Fragment}>
+        <Dialog as="div" className="relative z-50 lg:hidden" onClose={onClose}>
         <Transition.Child
           as={Fragment}
           enter="transition-opacity ease-linear duration-300"
@@ -127,21 +127,22 @@ export default function ChatSidebar({
             </Dialog.Panel>
           </Transition.Child>
         </div>
-      </Dialog>
-    </Transition.Root>
+        </Dialog>
+      </Transition.Root>
 
-    {/* Static sidebar for desktop */}
-    <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-80 lg:flex-col">
-      <SidebarContent
-        groupedSessions={groupedSessions}
-        currentSessionId={currentSessionId}
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        onSelectSession={onSelectSession}
-        onNewChat={onNewChat}
-        onDeleteSession={onDeleteSession}
-      />
-    </div>
+      {/* Static sidebar for desktop */}
+      <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-80 lg:flex-col">
+        <SidebarContent
+          groupedSessions={groupedSessions}
+          currentSessionId={currentSessionId}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          onSelectSession={onSelectSession}
+          onNewChat={onNewChat}
+          onDeleteSession={onDeleteSession}
+        />
+      </div>
+    </>
   )
 }
 
@@ -183,7 +184,7 @@ function SidebarContent({
       {/* Sessions list */}
       <nav className="flex flex-1 flex-col">
         <ul role="list" className="flex flex-1 flex-col gap-y-7">
-          {Object.entries(groupedSessions).map(([group, sessions]) => {
+          {(Object.entries(groupedSessions) as [string, Session[]][]).map(([group, sessions]) => {
             if (sessions.length === 0) return null
 
             const groupLabels: Record<string, string> = {
@@ -199,7 +200,7 @@ function SidebarContent({
                   {groupLabels[group]}
                 </div>
                 <ul role="list" className="mt-2 space-y-1">
-                  {sessions.map((session: Session) => (
+                  {sessions.map((session) => (
                     <li key={session.id}>
                       <div
                         className={clsx(

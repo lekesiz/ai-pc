@@ -16,6 +16,8 @@ interface ChatState {
   createSession: (title?: string) => Promise<Session>
   deleteSession: (sessionId: number) => Promise<void>
   sendMessage: (content: string) => Promise<void>
+  addMessage: (message: Message) => void
+  setIsSending: (isSending: boolean) => void
   clearError: () => void
   reset: () => void
 }
@@ -146,6 +148,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
         isSending: false
       }))
     }
+  },
+
+  addMessage: (message: Message) => {
+    set((state) => ({
+      messages: [...state.messages, message]
+    }))
+  },
+
+  setIsSending: (isSending: boolean) => {
+    set({ isSending })
   },
 
   clearError: () => set({ error: null }),

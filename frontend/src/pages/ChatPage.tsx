@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Bars3Icon } from '@heroicons/react/24/outline'
+import { Bars3Icon, SignalIcon, SignalSlashIcon } from '@heroicons/react/24/outline'
 import { useChatStore } from '@/stores/chatStore'
-import { wsService } from '@/services/websocketService'
+import { wsService, type WebSocketMessage } from '@/services/websocketService'
+import type { Message } from '@/types/chat'
 import ChatSidebar from '@/components/chat/ChatSidebar'
 import ChatInput from '@/components/chat/ChatInput'
 import MessageList from '@/components/chat/MessageList'
@@ -13,14 +14,14 @@ export default function ChatPage() {
   const { sessionId } = useParams()
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [isRecording, setIsRecording] = useState(false)
   const [showVoiceModal, setShowVoiceModal] = useState(false)
+  const [wsConnected, setWsConnected] = useState(false)
+  const [isAiThinking, setIsAiThinking] = useState(false)
 
   const {
     sessions,
     currentSession,
     messages,
-    isLoading,
     isSending,
     error,
     loadSessions,
@@ -28,28 +29,111 @@ export default function ChatPage() {
     createSession,
     deleteSession,
     sendMessage,
+    addMessage,
+    setIsSending,
     clearError
   } = useChatStore()
+
+  // Setup WebSocket handlers
+  useEffect(() => {
+    const handleConnected = () => {
+      setWsConnected(true)
+      console.log('WebSocket connected')
+    }
+
+    const handleDisconnected = () => {
+      setWsConnected(false)
+      console.log('WebSocket disconnected')
+    }
+
+    const handleError = (data: WebSocketMessage) => {
+      toast.error(data.message || 'WebSocket error')
+      setIsAiThinking(false)
+      setIsSending(false)
+    }
+
+    const handleMessageSaved = (data: WebSocketMessage) => {
+      // User message was saved
+      if (data.message) {
+        addMessage(data.message as Message)
+      }
+    }
+
+    const handleAiThinking = () => {
+      setIsAiThinking(true)
+    }
+
+    const handleAiResponse = (data: WebSocketMessage) => {
+      setIsAiThinking(false)
+      setIsSending(false)
+
+      // Add AI response message
+      if (data.message) {
+        addMessage(data.message as Message)
+      }
+
+      // Update session stats in the list
+      if (currentSession && data.session_id === currentSession.id) {
+        const updatedSession = {
+          ...currentSession,
+          total_messages: currentSession.total_messages + 2,
+          total_tokens_used: currentSession.total_tokens_used + (data.message.tokens_used || 0),
+          total_cost: currentSession.total_cost + (data.message.cost || 0)
+        }
+        useChatStore.setState({ currentSession: updatedSession })
+      }
+    }
+
+    // Register event handlers
+    wsService.on('connected', handleConnected)
+    wsService.on('disconnected', handleDisconnected)
+    wsService.on('error', handleError)
+    wsService.on('message_saved', handleMessageSaved)
+    wsService.on('ai_thinking', handleAiThinking)
+    wsService.on('ai_response', handleAiResponse)
+
+    // Connect WebSocket
+    wsService.connect()
+
+    // Cleanup
+    return () => {
+      wsService.off('connected', handleConnected)
+      wsService.off('disconnected', handleDisconnected)
+      wsService.off('error', handleError)
+      wsService.off('message_saved', handleMessageSaved)
+      wsService.off('ai_thinking', handleAiThinking)
+      wsService.off('ai_response', handleAiResponse)
+      wsService.disconnect()
+    }
+  }, [currentSession, addMessage, setIsSending])
 
   // Load sessions on mount
   useEffect(() => {
     loadSessions()
-    wsService.connect()
+  }, [loadSessions])
 
-    return () => {
-      // Cleanup
-    }
-  }, [])
-
-  // Load session when sessionId changes
+  // Load session and join WebSocket room when sessionId changes
   useEffect(() => {
     if (sessionId) {
-      loadSession(parseInt(sessionId))
+      const id = parseInt(sessionId)
+      loadSession(id)
+
+      // Join WebSocket session room
+      if (wsService.isConnected) {
+        wsService.joinSession(id)
+      } else {
+        // Wait for connection then join
+        const joinWhenReady = () => {
+          wsService.joinSession(id)
+          wsService.off('connected', joinWhenReady)
+        }
+        wsService.on('connected', joinWhenReady)
+      }
     } else {
       // Clear current session if no sessionId
       useChatStore.setState({ currentSession: null, messages: [] })
     }
-  }, [sessionId])
+  }, [sessionId, loadSession])
 
   // Handle errors
   useEffect(() => {
@@ -65,11 +149,38 @@ export default function ChatPage() {
       if (!currentSession && !sessionId) {
         const newSession = await createSession(message.substring(0, 50))
         navigate(`/chat/${newSession.id}`)
+        // Wait for session to be set and then send via WebSocket
+        return
       }
-      
-      await sendMessage(message)
+
+      // Use WebSocket if connected, otherwise fallback to HTTP
+      if (wsConnected && currentSession) {
+        setIsSending(true)
+
+        // Add user message optimistically
+        const tempUserMessage: Partial<Message> = {
+          content: message,
+          role: 'user',
+          type: 'text',
+          created_at: new Date().toISOString(),
+          tokens_used: 0,
+          cost: 0
+        }
+        addMessage(tempUserMessage as Message)
+
+        // Send via WebSocket
+        const success = wsService.sendMessage(message)
+        if (!success) {
+          toast.error('Failed to send message - WebSocket not ready')
+          setIsSending(false)
+        }
+      } else {
+        // Fallback to HTTP
+        await sendMessage(message)
+      }
     } catch (error: any) {
       toast.error('Failed to send message')
+      setIsSending(false)
     }
   }
 
@@ -136,6 +247,28 @@ export default function ChatPage() {
             )}
           </div>
 
+          {/* Connection Status Indicator */}
+          <div className="flex items-center gap-2">
+            {wsConnected ? (
+              <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
+                <SignalIcon className="h-5 w-5" />
+                <span className="text-xs font-medium hidden sm:inline">Connected</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500">
+                <SignalSlashIcon className="h-5 w-5" />
+                <span className="text-xs font-medium hidden sm:inline">Offline</span>
+              </div>
+            )}
+
+            {isAiThinking && (
+              <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400">
+                <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                <span className="text-xs font-medium hidden sm:inline">AI is thinking...</span>
+              </div>
+            )}
+          </div>
+
           {/* Model selector */}
           <select
             className="rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm"
@@ -161,7 +294,6 @@ export default function ChatPage() {
           onSendMessage={handleSendMessage}
           onVoiceRecord={handleVoiceRecord}
           isDisabled={isSending}
-          isRecording={isRecording}
         />
       </div>
 
