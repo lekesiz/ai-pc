@@ -98,40 +98,39 @@ async def process_message(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ) -> Any:
-    """Process a message using AI router"""
-    # Get or create session
-    session = None
-    if request.session_id:
-        session = await db.get(AISession, request.session_id)
-        if not session or session.user_id != current_user.id:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Session not found"
-            )
-    else:
-        # Create new session
-        session = AISession(
-            user_id=current_user.id,
-            title=request.message[:50] + "..." if len(request.message) > 50 else request.message,
-            ai_model=request.model or current_user.preferred_ai_model,
-            temperature=int((request.temperature or 0.7) * 10),
-            max_tokens=request.max_tokens or 2000
-        )
-        db.add(session)
-        await db.flush()
-    
-    # Save user message
-    user_message = Message(
-        session_id=session.id,
-        user_id=current_user.id,
-        content=request.message,
-        role=MessageRole.USER,
-        type=MessageType.TEXT
-    )
-    db.add(user_message)
-    await db.flush()
-    
+    """Process a message using AI router with proper transaction management"""
     try:
+        # Get or create session
+        session = None
+        if request.session_id:
+            session = await db.get(AISession, request.session_id)
+            if not session or session.user_id != current_user.id:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Session not found"
+                )
+        else:
+            # Create new session
+            session = AISession(
+                user_id=current_user.id,
+                title=request.message[:50] + "..." if len(request.message) > 50 else request.message,
+                ai_model=request.model or current_user.preferred_ai_model,
+                temperature=int((request.temperature or 0.7) * 10),
+                max_tokens=request.max_tokens or 2000
+            )
+            db.add(session)
+            await db.flush()
+
+        # Save user message
+        user_message = Message(
+            session_id=session.id,
+            user_id=current_user.id,
+            content=request.message,
+            role=MessageRole.USER,
+            type=MessageType.TEXT
+        )
+        db.add(user_message)
+        await db.flush()
         # Get conversation history
         history_query = select(Message).where(
             Message.session_id == session.id
@@ -201,20 +200,36 @@ async def process_message(
             cost=cost / 100,  # Convert back to dollars
             session_id=session.id
         )
-        
+
+    except HTTPException:
+        # Re-raise HTTP exceptions without rollback
+        await db.rollback()
+        raise
+
     except Exception as e:
-        # Save error message
-        error_message = Message(
-            session_id=session.id,
-            user_id=current_user.id,
-            content=f"Error: {str(e)}",
-            role=MessageRole.ERROR,
-            type=MessageType.TEXT
-        )
-        db.add(error_message)
-        await db.commit()
-        
-        logger.error(f"AI processing error: {str(e)}")
+        # Rollback the transaction on error
+        await db.rollback()
+
+        logger.error(f"AI processing error: {str(e)}", extra={
+            "user_id": current_user.id,
+            "session_id": session.id if session else None,
+            "error": str(e)
+        })
+
+        # Try to save error message in a separate transaction
+        try:
+            error_message = Message(
+                session_id=session.id,
+                user_id=current_user.id,
+                content=f"Error: {str(e)}",
+                role=MessageRole.ERROR,
+                type=MessageType.TEXT
+            )
+            db.add(error_message)
+            await db.commit()
+        except Exception as save_error:
+            logger.error(f"Failed to save error message: {save_error}")
+
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"AI processing failed: {str(e)}"

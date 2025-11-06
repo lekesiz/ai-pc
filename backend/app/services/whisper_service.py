@@ -17,34 +17,50 @@ logger = logging.getLogger(__name__)
 
 class WhisperService:
     """Service for handling audio transcription using OpenAI's Whisper API"""
-    
+
     def __init__(self):
-        if not settings.OPENAI_API_KEY:
-            raise ValueError("OpenAI API key not configured")
-        
-        self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+        """Initialize Whisper service. Service will be unavailable if no API key is configured."""
+        self.available = False
+        self.client = None
+
+        if settings.OPENAI_API_KEY:
+            try:
+                self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+                self.available = True
+                logger.info("Whisper service initialized successfully")
+            except Exception as e:
+                logger.warning(f"Failed to initialize Whisper service: {e}")
+        else:
+            logger.warning("Whisper service unavailable: No OpenAI API key configured")
+
         self.supported_formats = ['.mp3', '.mp4', '.mpeg', '.mpga', '.m4a', '.wav', '.webm', '.ogg']
         self.max_file_size = settings.AUDIO_MAX_SIZE_MB * 1024 * 1024  # Convert to bytes
     
     async def transcribe_audio(
-        self, 
-        audio_file: BinaryIO, 
+        self,
+        audio_file: BinaryIO,
         filename: str,
         language: Optional[str] = None,
         prompt: Optional[str] = None
     ) -> dict:
         """
         Transcribe audio file using Whisper API
-        
+
         Args:
             audio_file: Audio file binary data
             filename: Original filename
             language: Optional language code (e.g., 'en', 'fr')
             prompt: Optional prompt to guide the transcription
-            
+
         Returns:
             Dict containing transcription and metadata
+
+        Raises:
+            ValueError: If the Whisper service is not available
         """
+        if not self.available or not self.client:
+            raise ValueError("Whisper service is not available. Please configure OPENAI_API_KEY.")
+
         try:
             # Validate file extension
             file_ext = os.path.splitext(filename)[1].lower()

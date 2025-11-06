@@ -3,7 +3,8 @@ AI-related schemas
 """
 from typing import Optional, Dict, Any, List
 from datetime import datetime
-from pydantic import BaseModel, Field, ConfigDict, field_serializer
+from pydantic import BaseModel, Field, ConfigDict, field_serializer, field_validator
+import bleach
 from app.models.message import MessageRole, MessageType
 
 
@@ -49,7 +50,17 @@ class SessionResponse(SessionBase):
 
 
 class MessageBase(BaseModel):
-    content: str
+    content: str = Field(..., max_length=10000)
+
+    @field_validator('content')
+    @classmethod
+    def sanitize_content(cls, v: str) -> str:
+        """Sanitize message content to prevent XSS attacks"""
+        if not v or not v.strip():
+            raise ValueError("Content cannot be empty")
+        # Remove all HTML tags and potentially dangerous content
+        sanitized = bleach.clean(v, tags=[], strip=True)
+        return sanitized.strip()
 
 
 class MessageCreate(MessageBase):
@@ -81,13 +92,25 @@ class MessageResponse(MessageBase):
 
 
 class AICompletionRequest(BaseModel):
-    message: str
+    message: str = Field(..., max_length=10000)
     session_id: Optional[int] = None
     model: Optional[str] = None
     temperature: Optional[float] = Field(default=0.7, ge=0, le=1)
     max_tokens: Optional[int] = Field(default=None, ge=100, le=8000)
-    system_prompt: Optional[str] = None
+    system_prompt: Optional[str] = Field(None, max_length=2000)
     task_type: Optional[str] = Field(default="general", description="Task type for model selection")
+
+    @field_validator('message', 'system_prompt')
+    @classmethod
+    def sanitize_text_fields(cls, v: Optional[str]) -> Optional[str]:
+        """Sanitize text inputs to prevent injection attacks"""
+        if v is None:
+            return None
+        if not v.strip():
+            raise ValueError("Text content cannot be empty")
+        # Remove HTML tags and scripts
+        sanitized = bleach.clean(v, tags=[], strip=True)
+        return sanitized.strip()
 
 
 class AICompletionResponse(BaseModel):
