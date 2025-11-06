@@ -13,6 +13,7 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models import User, AISession, Message, MessageRole, MessageType
 from app.services.ai_service import ai_router as ai_service, AIModel
+from app.services.cache_service import cache
 from app.schemas.ai import (
     MessageCreate,
     MessageResponse,
@@ -42,11 +43,14 @@ async def create_session(
         temperature=int(session_data.temperature * 10),
         max_tokens=session_data.max_tokens
     )
-    
+
     db.add(session)
     await db.commit()
     await db.refresh(session)
-    
+
+    # Invalidate user's sessions cache
+    await cache.clear_user_cache(current_user.id)
+
     return session
 
 
@@ -58,17 +62,30 @@ async def get_sessions(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ) -> Any:
-    """Get user's AI sessions"""
+    """Get user's AI sessions with caching"""
+    # Try cache first
+    cache_key = f"user:{current_user.id}:sessions:{skip}:{limit}:{active_only}"
+    cached_sessions = await cache.get(cache_key)
+    if cached_sessions is not None:
+        return cached_sessions
+
+    # Query database
     query = select(AISession).where(AISession.user_id == current_user.id)
-    
+
     if active_only:
         query = query.where(AISession.is_active == True)
-    
+
     query = query.order_by(AISession.started_at.desc()).offset(skip).limit(limit)
-    
+
     result = await db.execute(query)
     sessions = result.scalars().all()
-    
+
+    # Convert to dict for caching (Pydantic models)
+    sessions_data = [SessionResponse.model_validate(session).model_dump() for session in sessions]
+
+    # Cache for 5 minutes
+    await cache.set(cache_key, sessions_data, ttl=300)
+
     return sessions
 
 
@@ -78,15 +95,32 @@ async def get_session(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ) -> Any:
-    """Get a specific session"""
+    """Get a specific session with caching"""
+    # Try cache first
+    cache_key = f"session:{session_id}"
+    cached_session = await cache.get(cache_key)
+    if cached_session is not None:
+        # Verify ownership (cached data includes user_id)
+        if cached_session.get("user_id") != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Session not found"
+            )
+        return cached_session
+
+    # Query database
     session = await db.get(AISession, session_id)
-    
+
     if not session or session.user_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Session not found"
         )
-    
+
+    # Cache for 5 minutes
+    session_data = SessionResponse.model_validate(session).model_dump()
+    await cache.set(cache_key, session_data, ttl=300)
+
     return session
 
 
@@ -189,9 +223,13 @@ async def process_message(
         session.total_messages += 2
         session.total_tokens_used += ai_response["usage"]["total_tokens"]
         session.total_cost += cost
-        
+
         await db.commit()
-        
+
+        # Invalidate cache for this session and user
+        await cache.clear_session_cache(session.id)
+        await cache.clear_user_cache(current_user.id)
+
         return AICompletionResponse(
             content=ai_response["content"],
             model=ai_response["model"],
@@ -244,7 +282,7 @@ async def get_messages(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ) -> Any:
-    """Get messages for a session"""
+    """Get messages for a session with caching"""
     # Verify session ownership
     session = await db.get(AISession, session_id)
     if not session or session.user_id != current_user.id:
@@ -252,14 +290,27 @@ async def get_messages(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Session not found"
         )
-    
+
+    # Try cache first
+    cache_key = f"session:{session_id}:messages:{skip}:{limit}"
+    cached_messages = await cache.get(cache_key)
+    if cached_messages is not None:
+        return cached_messages
+
+    # Query database
     query = select(Message).where(
         Message.session_id == session_id
     ).order_by(Message.created_at).offset(skip).limit(limit)
-    
+
     result = await db.execute(query)
     messages = result.scalars().all()
-    
+
+    # Convert to dict for caching
+    messages_data = [MessageResponse.model_validate(msg).model_dump() for msg in messages]
+
+    # Cache for 5 minutes
+    await cache.set(cache_key, messages_data, ttl=300)
+
     return messages
 
 
@@ -271,7 +322,7 @@ async def delete_session(
 ) -> Any:
     """Delete a session and all its messages"""
     session = await db.get(AISession, session_id)
-    
+
     if not session or session.user_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -280,5 +331,9 @@ async def delete_session(
     
     await db.delete(session)
     await db.commit()
-    
+
+    # Invalidate cache for this session and user
+    await cache.clear_session_cache(session_id)
+    await cache.clear_user_cache(current_user.id)
+
     return {"message": "Session deleted successfully"}

@@ -13,6 +13,7 @@ from python_json_logger import jsonlogger
 
 from app.core.config import settings
 from app.core.database import init_db, close_db
+from app.services.cache_service import cache
 from app.api import auth, ai_router, voice, websocket
 
 # Configure logging
@@ -35,11 +36,15 @@ async def lifespan(app: FastAPI):
     logger.info("Starting AI-PC System API")
     await init_db()
     logger.info("Database initialized")
-    
+    await cache.connect()
+    logger.info("Cache service initialized")
+
     yield
-    
+
     # Shutdown
     logger.info("Shutting down AI-PC System API")
+    await cache.disconnect()
+    logger.info("Cache disconnected")
     await close_db()
     logger.info("Database connections closed")
 

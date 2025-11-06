@@ -1,7 +1,7 @@
 """
 Message model for storing conversation history
 """
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, JSON, Enum, func
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, JSON, Enum, func, Index
 from sqlalchemy.orm import relationship
 import enum
 
@@ -24,10 +24,10 @@ class MessageType(str, enum.Enum):
 
 class Message(Base):
     __tablename__ = "messages"
-    
+
     id = Column(Integer, primary_key=True, index=True)
-    session_id = Column(Integer, ForeignKey("ai_sessions.id"), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    session_id = Column(Integer, ForeignKey("ai_sessions.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     
     # Message content
     content = Column(Text, nullable=False)
@@ -51,3 +51,13 @@ class Message(Base):
     # Relationships
     session = relationship("AISession", back_populates="messages")
     user = relationship("User", back_populates="messages")
+
+    # Composite indexes for common query patterns
+    __table_args__ = (
+        # Index for fetching messages in a session ordered by time
+        Index('ix_message_session_created', 'session_id', 'created_at'),
+        # Index for fetching user's messages ordered by time
+        Index('ix_message_user_created', 'user_id', 'created_at'),
+        # Index for filtering by role within a session
+        Index('ix_message_session_role', 'session_id', 'role'),
+    )

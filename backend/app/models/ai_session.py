@@ -1,7 +1,7 @@
 """
 AI Session model for tracking conversations
 """
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Text, JSON, func
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Text, JSON, func, Index
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
@@ -9,9 +9,9 @@ from app.core.database import Base
 
 class AISession(Base):
     __tablename__ = "ai_sessions"
-    
+
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     
     title = Column(String, nullable=True)
     description = Column(Text, nullable=True)
@@ -38,3 +38,11 @@ class AISession(Base):
     # Relationships
     user = relationship("User", back_populates="sessions")
     messages = relationship("Message", back_populates="session", cascade="all, delete-orphan")
+
+    # Composite indexes for common query patterns
+    __table_args__ = (
+        # Index for fetching user's sessions ordered by start time (most recent first)
+        Index('ix_session_user_started', 'user_id', 'started_at'),
+        # Index for active sessions by user
+        Index('ix_session_user_active', 'user_id', 'is_active'),
+    )

@@ -15,6 +15,7 @@ from app.models.user import User
 from app.models.ai_session import AISession
 from app.models.message import Message, MessageRole, MessageType
 from app.services.ai_service import ai_router as ai_service, AIModel
+from app.services.cache_service import cache
 
 logger = logging.getLogger(__name__)
 
@@ -316,6 +317,10 @@ async def process_ai_message_ws(
 
         await db.commit()
         await db.refresh(assistant_message)
+
+        # Invalidate cache for this session and user
+        await cache.clear_session_cache(session_id)
+        await cache.clear_user_cache(user.id)
 
         # Send AI response via WebSocket
         await manager.send_to_user({
