@@ -2,9 +2,12 @@
 FastAPI application entry point
 """
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 import logging
 from python_json_logger import jsonlogger
 
@@ -20,6 +23,9 @@ logging.root.handlers = [logHandler]
 logging.root.setLevel(settings.LOG_LEVEL)
 
 logger = logging.getLogger(__name__)
+
+# Rate limiter setup
+limiter = Limiter(key_func=get_remote_address)
 
 
 @asynccontextmanager
@@ -47,18 +53,29 @@ app = FastAPI(
     redoc_url="/api/redoc" if settings.DEBUG else None,
 )
 
+# Add rate limiter to app state
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 # Add middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Specific methods only
     allow_headers=["*"],
 )
 
+# TrustedHost middleware - always specify allowed hosts, even in DEBUG
 app.add_middleware(
     TrustedHostMiddleware,
-    allowed_hosts=["*"] if settings.DEBUG else ["ai-pc.com", "*.ai-pc.com"]
+    allowed_hosts=[
+        "localhost",
+        "127.0.0.1",
+        "0.0.0.0",
+        "ai-pc.com",
+        "*.ai-pc.com"
+    ] if settings.DEBUG else ["ai-pc.com", "*.ai-pc.com"]
 )
 
 # Include routers

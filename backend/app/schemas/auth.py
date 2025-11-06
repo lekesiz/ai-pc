@@ -38,12 +38,14 @@ class UserResponse(UserBase):
 
 class Token(BaseModel):
     access_token: str
-    refresh_token: str
     token_type: str = "bearer"
+    # refresh_token is now in httpOnly cookie, not in response body
 
 
 class TokenRefresh(BaseModel):
-    refresh_token: str
+    # This schema is deprecated - refresh token now comes from httpOnly cookie
+    # Kept for backwards compatibility
+    refresh_token: Optional[str] = None
 
 
 class PasswordReset(BaseModel):

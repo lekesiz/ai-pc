@@ -2,9 +2,11 @@
 AI Router API endpoints
 """
 from typing import Any, List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 import logging
 
 from app.core.database import get_db
@@ -22,6 +24,7 @@ from app.schemas.ai import (
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+limiter = Limiter(key_func=get_remote_address)
 
 
 @router.post("/sessions", response_model=SessionResponse)
@@ -88,7 +91,9 @@ async def get_session(
 
 
 @router.post("/process", response_model=AICompletionResponse)
+@limiter.limit("10/minute")  # 10 AI requests per minute per user
 async def process_message(
+    http_request: Request,
     request: AICompletionRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)

@@ -7,6 +7,7 @@ export const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true,  // Enable cookies (for httpOnly refresh token)
 })
 
 // Auth token management
@@ -42,19 +43,12 @@ api.interceptors.response.use(
       originalRequest._retry = true
 
       try {
-        const refreshToken = localStorage.getItem('refresh_token')
-        if (!refreshToken) {
-          throw new Error('No refresh token')
-        }
+        // Refresh token is now in httpOnly cookie, sent automatically
+        const response = await api.post('/api/auth/refresh')
 
-        const response = await api.post('/api/auth/refresh', {
-          refresh_token: refreshToken,
-        })
+        const { access_token } = response.data
 
-        const { access_token, refresh_token: newRefreshToken } = response.data
-        
-        // Update tokens
-        localStorage.setItem('refresh_token', newRefreshToken)
+        // Update access token
         setAuthToken(access_token)
 
         // Retry original request
