@@ -34,6 +34,10 @@ pydantic-settings==2.1.0
 aiofiles==23.2.1
 python-json-logger==2.0.7
 
+# Security
+slowapi==0.1.9  # Rate limiting
+bleach==6.1.0  # Input sanitization
+
 # Audio Processing
 soundfile==0.12.1
 numpy==1.26.2

@@ -3,10 +3,12 @@ Authentication endpoints
 """
 from datetime import timedelta
 from typing import Any
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from app.core.config import settings
 from app.core.database import get_db
@@ -29,10 +31,13 @@ from app.schemas.auth import (
 )
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
 
 @router.post("/register", response_model=UserResponse)
+@limiter.limit("5/hour")  # 5 registrations per hour per IP
 async def register(
+    http_request: Request,
     user_data: UserCreate,
     db: AsyncSession = Depends(get_db)
 ) -> Any:
@@ -64,7 +69,10 @@ async def register(
 
 
 @router.post("/login", response_model=Token)
+@limiter.limit("20/hour")  # 20 login attempts per hour per IP (brute force protection)
 async def login(
+    http_request: Request,
+    response: Response,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_db)
 ) -> Any:
@@ -76,51 +84,70 @@ async def login(
         )
     )
     user = result.scalar_one_or_none()
-    
+
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Inactive user"
         )
-    
+
     # Create tokens
     access_token = create_access_token(
         data={"sub": str(user.id)},
         expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
     refresh_token = create_refresh_token(data={"sub": str(user.id)})
-    
+
+    # Set refresh token as httpOnly cookie
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,  # Cannot be accessed by JavaScript
+        secure=not settings.DEBUG,  # HTTPS only in production
+        samesite="lax",  # CSRF protection
+        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60  # seconds
+    )
+
     # Update last login
     user.last_login = func.now()
     await db.commit()
-    
+
     return {
         "access_token": access_token,
-        "refresh_token": refresh_token,
         "token_type": "bearer"
+        # refresh_token removed from response body - now in httpOnly cookie
     }
 
 
 @router.post("/refresh", response_model=Token)
 async def refresh_token(
-    token_data: TokenRefresh,
+    request: Request,
+    response: Response,
     db: AsyncSession = Depends(get_db)
 ) -> Any:
-    """Refresh access token using refresh token"""
-    user_id = verify_token(token_data.refresh_token, "refresh")
+    """Refresh access token using refresh token from httpOnly cookie"""
+    # Get refresh token from cookie
+    refresh_token_value = request.cookies.get("refresh_token")
+    if not refresh_token_value:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token not found"
+        )
+
+    user_id = verify_token(refresh_token_value, "refresh")
     if not user_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid refresh token"
         )
-    
+
     # Check if user still exists and is active
     user = await db.get(User, int(user_id))
     if not user or not user.is_active:
@@ -128,17 +155,26 @@ async def refresh_token(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found or inactive"
         )
-    
+
     # Create new tokens
     access_token = create_access_token(
         data={"sub": str(user.id)},
         expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
-    refresh_token = create_refresh_token(data={"sub": str(user.id)})
-    
+    new_refresh_token = create_refresh_token(data={"sub": str(user.id)})
+
+    # Update refresh token cookie
+    response.set_cookie(
+        key="refresh_token",
+        value=new_refresh_token,
+        httponly=True,
+        secure=not settings.DEBUG,
+        samesite="lax",
+        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
+    )
+
     return {
         "access_token": access_token,
-        "refresh_token": refresh_token,
         "token_type": "bearer"
     }
 
@@ -172,9 +208,13 @@ async def update_user(
 
 @router.post("/logout")
 async def logout(
+    response: Response,
     current_user: User = Depends(get_current_user)
 ) -> Any:
     """Logout current user"""
-    # In a real implementation, you might want to blacklist the token
-    # For now, just return success
+    # Clear refresh token cookie
+    response.delete_cookie(key="refresh_token")
+
+    # In a real implementation, you might want to blacklist the access token
+    # For now, just clear the cookie and return success
     return {"message": "Successfully logged out"}

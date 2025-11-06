@@ -3,7 +3,8 @@ AI-related schemas
 """
 from typing import Optional, Dict, Any, List
 from datetime import datetime
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_serializer, field_validator
+import bleach
 from app.models.message import MessageRole, MessageType
 
 
@@ -30,21 +31,36 @@ class SessionResponse(SessionBase):
     total_messages: int
     total_tokens_used: int
     total_cost: float  # In dollars
-    
+
     model_config = ConfigDict(from_attributes=True)
-    
-    @property
-    def temperature(self) -> float:
-        # Convert integer to float
-        return self._temperature / 10.0
-    
-    @temperature.setter
-    def temperature(self, value: int) -> None:
-        self._temperature = value
+
+    @field_serializer('temperature')
+    def serialize_temperature(self, value: int) -> float:
+        """Convert integer (0-10) to float (0.0-1.0)"""
+        if isinstance(value, int):
+            return value / 10.0
+        return value
+
+    @field_serializer('total_cost')
+    def serialize_total_cost(self, value: int) -> float:
+        """Convert cents to dollars"""
+        if isinstance(value, int):
+            return value / 100.0
+        return value
 
 
 class MessageBase(BaseModel):
-    content: str
+    content: str = Field(..., max_length=10000)
+
+    @field_validator('content')
+    @classmethod
+    def sanitize_content(cls, v: str) -> str:
+        """Sanitize message content to prevent XSS attacks"""
+        if not v or not v.strip():
+            raise ValueError("Content cannot be empty")
+        # Remove all HTML tags and potentially dangerous content
+        sanitized = bleach.clean(v, tags=[], strip=True)
+        return sanitized.strip()
 
 
 class MessageCreate(MessageBase):
@@ -64,27 +80,37 @@ class MessageResponse(MessageBase):
     tokens_used: int
     cost: float  # In dollars
     created_at: datetime
-    
+
     model_config = ConfigDict(from_attributes=True)
-    
-    @property
-    def cost(self) -> float:
-        # Convert cents to dollars
-        return self._cost / 100.0
-    
-    @cost.setter
-    def cost(self, value: int) -> None:
-        self._cost = value
+
+    @field_serializer('cost')
+    def serialize_cost(self, value: int) -> float:
+        """Convert cents to dollars"""
+        if isinstance(value, int):
+            return value / 100.0
+        return value
 
 
 class AICompletionRequest(BaseModel):
-    message: str
+    message: str = Field(..., max_length=10000)
     session_id: Optional[int] = None
     model: Optional[str] = None
     temperature: Optional[float] = Field(default=0.7, ge=0, le=1)
     max_tokens: Optional[int] = Field(default=None, ge=100, le=8000)
-    system_prompt: Optional[str] = None
+    system_prompt: Optional[str] = Field(None, max_length=2000)
     task_type: Optional[str] = Field(default="general", description="Task type for model selection")
+
+    @field_validator('message', 'system_prompt')
+    @classmethod
+    def sanitize_text_fields(cls, v: Optional[str]) -> Optional[str]:
+        """Sanitize text inputs to prevent injection attacks"""
+        if v is None:
+            return None
+        if not v.strip():
+            raise ValueError("Text content cannot be empty")
+        # Remove HTML tags and scripts
+        sanitized = bleach.clean(v, tags=[], strip=True)
+        return sanitized.strip()
 
 
 class AICompletionResponse(BaseModel):

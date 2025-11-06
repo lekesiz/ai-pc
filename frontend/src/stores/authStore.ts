@@ -27,10 +27,10 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true })
         try {
           const response = await api.post('/api/auth/login', credentials)
-          const { access_token, refresh_token } = response.data
+          const { access_token } = response.data
+          // refresh_token is now in httpOnly cookie, not in response body
 
-          // Store tokens
-          localStorage.setItem('refresh_token', refresh_token)
+          // Set access token
           setAuthToken(access_token)
 
           // Fetch user data
@@ -64,8 +64,16 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      logout: () => {
-        localStorage.removeItem('refresh_token')
+      logout: async () => {
+        try {
+          // Call logout endpoint to clear httpOnly cookie
+          await api.post('/api/auth/logout')
+        } catch (error) {
+          // Continue with logout even if request fails
+          console.error('Logout request failed:', error)
+        }
+
+        // Clear access token and state
         setAuthToken(null)
         set({
           user: null,
